@@ -83,9 +83,7 @@ func NewDialContextFunc(optFuncs ...dialerOpt) func(context.Context, string, str
 	for _, f := range optFuncs {
 		f(opts)
 	}
-	if opts.monitoring {
-		PreRegisterDialerMetrics(opts.name)
-	}
+
 	return func(ctx context.Context, network string, addr string) (net.Conn, error) {
 		name := opts.name
 		if ctxName := DialNameFromContext(ctx); ctxName != "" {
@@ -118,7 +116,7 @@ func dialClientConnTracker(ctx context.Context, network string, addr string, dia
 		event = trace.NewEventLog(fmt.Sprintf("net.ClientConn.%s", dialerName), fmt.Sprintf("%v", addr))
 	}
 	if opts.monitoring {
-		reportDialerConnAttempt(dialerName)
+		reportDialerConnAttempt(dialerName, addr)
 	}
 	conn, err := opts.parentDialContextFunc(ctx, network, addr)
 	if err != nil {
@@ -135,7 +133,7 @@ func dialClientConnTracker(ctx context.Context, network string, addr string, dia
 		event.Printf("established: %s -> %s", conn.LocalAddr(), conn.RemoteAddr())
 	}
 	if opts.monitoring {
-		reportDialerConnEstablished(dialerName)
+		reportDialerConnEstablished(dialerName, conn.RemoteAddr().String())
 	}
 	tracker := &clientConnTracker{
 		Conn:       conn,
@@ -160,7 +158,7 @@ func (ct *clientConnTracker) Close() error {
 	}
 	ct.mu.Unlock()
 	if ct.opts.monitoring {
-		reportDialerConnClosed(ct.dialerName)
+		reportDialerConnClosed(ct.dialerName, ct.Conn.RemoteAddr().String())
 	}
 	return err
 }

@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mwitkow/go-conntrack"
-	"github.com/mwitkow/go-conntrack/connhelpers"
+	"github.com/eaglerayp/go-conntrack"
+	"github.com/eaglerayp/go-conntrack/connhelpers"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/context/ctxhttp"
 	_ "golang.org/x/net/trace"
