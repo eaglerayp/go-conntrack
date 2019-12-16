@@ -38,7 +38,7 @@ func main() {
 		}),
 	)
 	// Since we're using a dynamic name, let's preregister it with prometheus.
-	conntrack.PreRegisterDialerMetrics("google")
+	// conntrack.PreRegisterDialerMetrics("google")
 
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
