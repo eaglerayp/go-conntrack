@@ -27,6 +27,21 @@ type dialerOpt func(*dialerOpts)
 
 type dialerContextFunc func(context.Context, string, string) (net.Conn, error)
 
+// Dialer implements interface in golang, see https://golang.org/pkg/net/#Dialer.Dial
+type Dialer struct {
+	dialFunc dialerContextFunc
+}
+
+// Dial function, see https://golang.org/pkg/net/#Dialer.Dial
+func (dialer *Dialer) Dial(network, address string) (net.Conn, error) {
+	return dialer.dialFunc(context.TODO(), network, address)
+}
+
+// DialContext function, see https://golang.org/pkg/net/#Dialer.Dial
+func (dialer *Dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return dialer.dialFunc(ctx, network, address)
+}
+
 // DialWithName sets the name of the dialer for tracking and monitoring.
 // This is the name for the dialer (default is `default`), but for `NewDialContextFunc` can be overwritten from the
 // Context using `DialNameToContext`.
@@ -83,9 +98,7 @@ func NewDialContextFunc(optFuncs ...dialerOpt) func(context.Context, string, str
 	for _, f := range optFuncs {
 		f(opts)
 	}
-	if opts.monitoring {
-		PreRegisterDialerMetrics(opts.name)
-	}
+
 	return func(ctx context.Context, network string, addr string) (net.Conn, error) {
 		name := opts.name
 		if ctxName := DialNameFromContext(ctx); ctxName != "" {
@@ -104,6 +117,15 @@ func NewDialFunc(optFuncs ...dialerOpt) func(string, string) (net.Conn, error) {
 	}
 }
 
+// NewDialer returns a new Dialer
+// Note that if there is DialWithDialer in optFuncs, that dialer will be
+// the dialer instance that actually conducts the dials
+func NewDialer(optFuncs ...dialerOpt) *Dialer {
+	return &Dialer{
+		dialFunc: NewDialContextFunc(optFuncs...),
+	}
+}
+
 type clientConnTracker struct {
 	net.Conn
 	opts       *dialerOpts
@@ -118,7 +140,7 @@ func dialClientConnTracker(ctx context.Context, network string, addr string, dia
 		event = trace.NewEventLog(fmt.Sprintf("net.ClientConn.%s", dialerName), fmt.Sprintf("%v", addr))
 	}
 	if opts.monitoring {
-		reportDialerConnAttempt(dialerName)
+		reportDialerConnAttempt(dialerName, addr)
 	}
 	conn, err := opts.parentDialContextFunc(ctx, network, addr)
 	if err != nil {
@@ -135,7 +157,8 @@ func dialClientConnTracker(ctx context.Context, network string, addr string, dia
 		event.Printf("established: %s -> %s", conn.LocalAddr(), conn.RemoteAddr())
 	}
 	if opts.monitoring {
-		reportDialerConnEstablished(dialerName)
+		reportDialerConnEstablished(dialerName, conn.RemoteAddr().String())
+		preRegisterDialerConnClosed(dialerName, conn.RemoteAddr().String())
 	}
 	tracker := &clientConnTracker{
 		Conn:       conn,
@@ -160,7 +183,8 @@ func (ct *clientConnTracker) Close() error {
 	}
 	ct.mu.Unlock()
 	if ct.opts.monitoring {
-		reportDialerConnClosed(ct.dialerName)
+		reportDialerConnClosed(ct.dialerName, ct.Conn.RemoteAddr().String())
 	}
 	return err
 }
+

@@ -1,8 +1,8 @@
 # Go tracing and monitoring (Prometheus) for `net.Conn`
 
 [![Travis Build](https://travis-ci.org/mwitkow/go-conntrack.svg)](https://travis-ci.org/mwitkow/go-conntrack)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mwitkow/go-conntrack)](http://goreportcard.com/report/mwitkow/go-conntrack)
-[![GoDoc](http://img.shields.io/badge/GoDoc-Reference-blue.svg)](https://godoc.org/github.com/mwitkow/go-conntrack)
+[![Go Report Card](https://goreportcard.com/badge/github.com/eaglerayp/go-conntrack)](http://goreportcard.com/report/mwitkow/go-conntrack)
+[![GoDoc](http://img.shields.io/badge/GoDoc-Reference-blue.svg)](https://godoc.org/github.com/eaglerayp/go-conntrack)
 [![Apache 2.0 License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 [Prometheus](https://prometheus.io/) monitoring and [`x/net/trace`](https://godoc.org/golang.org/x/net/trace#EventLog) tracing wrappers `net.Conn`, both inbound (`net.Listener`) and outbound (`net.Dialer`).

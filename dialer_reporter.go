@@ -28,7 +28,7 @@ var (
 			Subsystem: "conntrack",
 			Name:      "dialer_conn_attempted_total",
 			Help:      "Total number of connections attempted by the given dialer a given name.",
-		}, []string{"dialer_name"})
+		}, []string{"dialer_name", "addr"})
 
 	dialerConnEstablishedTotal = prom.NewCounterVec(
 		prom.CounterOpts{
@@ -36,7 +36,7 @@ var (
 			Subsystem: "conntrack",
 			Name:      "dialer_conn_established_total",
 			Help:      "Total number of connections successfully established by the given dialer a given name.",
-		}, []string{"dialer_name"})
+		}, []string{"dialer_name", "addr"})
 
 	dialerConnFailedTotal = prom.NewCounterVec(
 		prom.CounterOpts{
@@ -52,7 +52,7 @@ var (
 			Subsystem: "conntrack",
 			Name:      "dialer_conn_closed_total",
 			Help:      "Total number of connections closed which originated from the dialer of a given name.",
-		}, []string{"dialer_name"})
+		}, []string{"dialer_name", "addr"})
 )
 
 func init() {
@@ -62,26 +62,20 @@ func init() {
 	prom.MustRegister(dialerConnClosedTotal)
 }
 
-// preRegisterDialerMetrics pre-populates Prometheus labels for the given dialer name, to avoid Prometheus missing labels issue.
-func PreRegisterDialerMetrics(dialerName string) {
-	dialerAttemptedTotal.WithLabelValues(dialerName)
-	dialerConnEstablishedTotal.WithLabelValues(dialerName)
-	for _, reason := range []failureReason{failedTimeout, failedResolution, failedConnRefused, failedUnknown} {
-		dialerConnFailedTotal.WithLabelValues(dialerName, string(reason))
-	}
-	dialerConnClosedTotal.WithLabelValues(dialerName)
+func reportDialerConnAttempt(dialerName, addr string) {
+	dialerAttemptedTotal.WithLabelValues(dialerName, addr).Inc()
 }
 
-func reportDialerConnAttempt(dialerName string) {
-	dialerAttemptedTotal.WithLabelValues(dialerName).Inc()
+func reportDialerConnEstablished(dialerName, addr string) {
+	dialerConnEstablishedTotal.WithLabelValues(dialerName, addr).Inc()
 }
 
-func reportDialerConnEstablished(dialerName string) {
-	dialerConnEstablishedTotal.WithLabelValues(dialerName).Inc()
+func preRegisterDialerConnClosed(dialerName, addr string) {
+	dialerConnClosedTotal.WithLabelValues(dialerName, addr)
 }
 
-func reportDialerConnClosed(dialerName string) {
-	dialerConnClosedTotal.WithLabelValues(dialerName).Inc()
+func reportDialerConnClosed(dialerName, addr string) {
+	dialerConnClosedTotal.WithLabelValues(dialerName, addr).Inc()
 }
 
 func reportDialerConnFailed(dialerName string, err error) {

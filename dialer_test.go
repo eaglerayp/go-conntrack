@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mwitkow/go-conntrack"
+	"github.com/eaglerayp/go-conntrack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -39,33 +39,6 @@ func (s *DialerTestSuite) SetupSuite() {
 	go func() {
 		s.httpServer.Serve(s.serverListener)
 	}()
-}
-
-func (s *DialerTestSuite) TestDialerMetricsArePreregistered() {
-	conntrack.NewDialContextFunc() // dialer name = default
-	conntrack.NewDialContextFunc(conntrack.DialWithName("foobar"))
-	conntrack.PreRegisterDialerMetrics("something_manual")
-	for testId, testCase := range []struct {
-		metricName     string
-		existingLabels []string
-	}{
-		{"net_conntrack_dialer_conn_attempted_total", []string{"default"}},
-		{"net_conntrack_dialer_conn_attempted_total", []string{"foobar"}},
-		{"net_conntrack_dialer_conn_attempted_total", []string{"something_manual"}},
-		{"net_conntrack_dialer_conn_closed_total", []string{"default"}},
-		{"net_conntrack_dialer_conn_closed_total", []string{"foobar"}},
-		{"net_conntrack_dialer_conn_closed_total", []string{"something_manual"}},
-		{"net_conntrack_dialer_conn_established_total", []string{"default"}},
-		{"net_conntrack_dialer_conn_established_total", []string{"foobar"}},
-		{"net_conntrack_dialer_conn_established_total", []string{"something_manual"}},
-		{"net_conntrack_dialer_conn_failed_total", []string{"default", "resolution"}},
-		{"net_conntrack_dialer_conn_failed_total", []string{"default", "refused"}},
-		{"net_conntrack_dialer_conn_failed_total", []string{"default", "timeout"}},
-		{"net_conntrack_dialer_conn_failed_total", []string{"default", "unknown"}},
-	} {
-		lineCount := len(fetchPrometheusLines(s.T(), testCase.metricName, testCase.existingLabels...))
-		assert.NotEqual(s.T(), 0, lineCount, "metrics must exist for test case %d", testId)
-	}
 }
 
 func (s *DialerTestSuite) TestDialerMetricsAreNotPreregisteredWithMonitoringOff() {
@@ -109,7 +82,6 @@ func (s *DialerTestSuite) TestDialerUnderNormalConnection() {
 
 func (s *DialerTestSuite) TestDialerWithContextName() {
 	dialFunc := conntrack.NewDialContextFunc()
-	conntrack.PreRegisterDialerMetrics("ctx_conn")
 
 	beforeAttempts := sumCountersForMetricAndLabels(s.T(), "net_conntrack_dialer_conn_attempted_total", "ctx_conn")
 	beforeEstablished := sumCountersForMetricAndLabels(s.T(), "net_conntrack_dialer_conn_established_total", "ctx_conn")
